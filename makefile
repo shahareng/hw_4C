@@ -2,8 +2,8 @@ CC=gcc
 FLAGS= -Wall -g
 
 all: frequency
-frequency: frequency.c
-	$(CC) $(FLAGS)  frequency.c -o frequency
+frequency: frequency.c frequency.h
+	$(CC) $(FLAGS)  frequency.c frequency.h -o frequency
 
 .PHONY: clean all
 

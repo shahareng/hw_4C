@@ -2,18 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
-
-#define NUM_LETTERS ((int)26)
-
-typedef enum {FALSE=0, TRUE=1} boolean;
-
-typedef struct node {
-    char letter;
-    long unsigned int count;
-    long unsigned int countChild;
-    struct node* children[NUM_LETTERS];
-    boolean isEndOfWord; 
-} node;
+#include "frequency.h"
 
 // Returns new trie node (initialized to NULLs) 
 node* getNode(char c) 
@@ -22,8 +11,7 @@ node* getNode(char c)
     pNode = (node*)malloc(sizeof(node));
     if (pNode) 
     { 
-        int i; 
-        pNode->countChild=0;
+        int i;
         pNode->isEndOfWord = FALSE;
         pNode->letter = c;
         // put NULL value in his children
@@ -31,21 +19,6 @@ node* getNode(char c)
             pNode->children[i] = NULL; 
     }
     return pNode; 
-}
-
-// count how many children the node has
-void countChild(node* root)
-{
-    node *pNode = root;
-    int i;
-    pNode->countChild = 0;
-    for(i =0; i<NUM_LETTERS; i++)
-    {
-        if(pNode->children[i] != NULL && root->children[i]->countChild != -1)
-        {
-            pNode->countChild++;
-        }
-    }
 }
 
 // turn all the leeters to lowercase
@@ -76,9 +49,7 @@ int insert(node* root, char c)
             {
                 // create new node if he isn't exist
                 pNode->children[index] = getNode(c);
-                pNode->countChild++;
             }
-            // pNode->children[index]->countChild++; //
             pNode = pNode->children[index];
         }
         
@@ -89,7 +60,6 @@ int insert(node* root, char c)
     }
     pNode->count++;
     pNode->isEndOfWord = TRUE;
-    // pNode->countChild++;
     return t;
 }
 
@@ -110,125 +80,71 @@ void freeTrie(node** root)
 }
 
 // print all the words in a lexicographic order
-void printUp(node** root) 
+void printUp(node* root, char* str, int level) 
 { 
-    // check if the node is the last one in the word
-    if ((*root)->countChild == 0 && (*root)->isEndOfWord)
-    {
-        printf("%c  %ld\n", (*root)->letter, (*root)->count);
-        (*root)->countChild = -1;
-        return; 
-    }
-
-    if((*root)->countChild == 0 && !((*root)->isEndOfWord))
-    {
-        (*root)->isEndOfWord = TRUE;
-        (*root)->countChild = -1;
-        return;
-    }  
-
-    for(int i=0; i<NUM_LETTERS; i++)
-    {
-        if((*root)->children[i] != NULL && (*root)->children[i]->countChild != -1)
-        {
-            printf("%c", (*root)->letter);
-            printUp(&((*root)->children[i]));
-            if((*root)->children[i]->isEndOfWord)
-            {
-                (*root)->countChild--;
-            }
-        }
-    }   
+    if(root == NULL)
+	{
+		return;
+	}
+    // Stopping conditions. check if this is the end of the word
+    if (root->isEndOfWord)  
+    { 
+        str[level] = '\0'; 
+		printf("%s  %ld \n", str, root->count);
+    } 
+    for (int i = 0; i < NUM_LETTERS; i++)
+	{ 
+		if (root->children[i])  
+		{ 
+			str[level] = i + 'a'; 
+			printUp(root->children[i], str, level + 1); 
+		} 
+	}  
 }
 
 // print all the words in a reverse lexicographic order
-void printDown(node** root) 
+void printDown(node* root, char* str, int level) 
 { 
-    // check if the node is the last one in the word
-    if ((*root)->countChild == 0 && (*root)->isEndOfWord)
-    {
-        printf("%c  %ld\n", (*root)->letter, (*root)->count);
-        (*root)->countChild = -1;
-        return; 
+    if(root == NULL)
+	{
+		return;
+	}
+    // Stopping conditions. check if this is the end of the word
+    if (root->isEndOfWord)  
+    { 
+        str[level] = '\0'; 
+		printf("%s  %ld \n", str, root->count);
     }
-
-    if((*root)->countChild == 0 && !((*root)->isEndOfWord))
-    {
-        (*root)->isEndOfWord = TRUE;
-        (*root)->countChild = -1;
-        return;
-    }  
-
-    for(int i=NUM_LETTERS; i>=0; i--)
-    {
-        if((*root)->children[i] != NULL && (*root)->children[i]->countChild != -1)
-        {
-            if((*root)->children[i]->isEndOfWord)
-            {
-                (*root)->countChild--;
-            }
-            printf("%c", (*root)->letter);
-            printDown(&((*root)->children[i]));
-        }
-    }   
+	for (int i = NUM_LETTERS - 1; i >= 0; i--)
+	{ 
+		if (root->children[i])  
+		{ 
+			str[level] = i + 'a'; 
+			printDown(root->children[i], str, level + 1); 
+		} 
+	}   
 }
 
-int main(int argc,char* argv[])
+int main(int argc,char* argV[])
 {
-    boolean printR;
-    // read from the terminal
-    if(argc==2 && strcmp(argv[1], "r") == 0)
-    {
-        printR = TRUE;
-    }
     char c;
+    char* str = (char *)malloc(sizeof(char) * 2);
     int t = 1;
-    int i=0;
     node *root = getNode(' ');
     while(scanf("%c", &c) != EOF && t)
     {
         t = insert(root, c);
     }
-    if(!root->countChild)
+    // read from the terminal in which order to print the trie
+    if(argc == 2 && *argV[1] == 'r')
     {
-        printf("%s\n", "Trie is empty");
-        return 0;
-    }
-    node *pNode = root;
-    if(printR)
-    {
-        for(i=NUM_LETTERS-1; i>=0; i--)
-    
-        if(pNode->children[i] != NULL && root->children[i]->countChild != -1)
-        {
-            pNode = pNode->children[i];
-            while(pNode->countChild > 0)
-            {
-                printDown(&(pNode));
-                countChild(pNode);
-            }
-            pNode->countChild = -1;
-        }
-        pNode = root;
-    
+        printDown(root, str, 0);
     }
     else
     {
-    for(i=0; i<NUM_LETTERS; i++)
-    {
-        if(pNode->children[i] != NULL && pNode->children[i]->countChild != -1)
-        {
-            pNode = pNode->children[i];
-            while(pNode->countChild > 0)
-            {
-                printUp(&(pNode));
-                countChild(pNode);
-            }
-            pNode->countChild = -1;
-        }
-        pNode = root;
+        printUp(root, str, 0);
     }
     freeTrie(&root);
     return 0;
 }
-} 
+
